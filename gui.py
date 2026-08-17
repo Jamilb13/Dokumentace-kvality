@@ -13,6 +13,7 @@ from excel_manager import (
     read_config_from_excel, 
     read_open_excel_via_com,
     write_files_to_seznam, 
+    update_config_sheet,
     update_autel_config,
     safe_save_workbook,
     safe_load_workbook,
@@ -55,7 +56,7 @@ class ManualWindow(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
-        self.title(f"Uživatelská příručka & Návod - AUTEL ({APP_VERSION})")
+        self.title(f"Uživatelská příručka & Návod ({APP_VERSION})")
         self.geometry("780x640")
         self.attributes("-topmost", True)
         
@@ -71,7 +72,7 @@ class ManualWindow(ctk.CTkToplevel):
         
         ctk.CTkLabel(
             header_frame, 
-            text=f"AUTEL - Utilita pro Tvorbu Dokumentace Kvality ({APP_VERSION})  |  Autor: {APP_AUTHOR}", 
+            text=f"Utilita pro Tvorbu Dokumentace Kvality ({APP_VERSION})  |  Autor: {APP_AUTHOR}", 
             font=ctk.CTkFont(size=11, slant="italic"),
             text_color="#AAAAAA"
         ).pack(anchor="w", pady=(2, 0))
@@ -82,7 +83,7 @@ class ManualWindow(ctk.CTkToplevel):
         
         manual_content = (
             "========================================================================\n"
-            f"   AUTEL, a.s. - UTILITA PRO TVORBU DOKUMENTACE KVALITY ({APP_VERSION})\n"
+            f"   UTILITA PRO TVORBU DOKUMENTACE KVALITY ({APP_VERSION})\n"
             f"   Autor: {APP_AUTHOR} | Datum: 2026\n"
             f"   Git Repozitář: {GIT_REPOSITORY_URL}\n"
             "========================================================================\n\n"
@@ -99,7 +100,7 @@ class ManualWindow(ctk.CTkToplevel):
             "   2) Klikněte na 'Vygenerovat / Obnovit Excel' -> Vytvoří se sešit Dokumentace_Kvality.xlsx.\n"
             "   3) Nastavte pravidla (otáčení stránek, zachování struktury složek, sloučení do PDF).\n"
             "   4) Na záložce 'Formát Razítka' zvolte velikost, průhlednost, styl fontu a barvu razítka.\n"
-            "   5) Všechny změny v GUI se OKAMŽITĚ automaticky ukládají do záložky AUTEL v Excelu!\n"
+            "   5) Všechny změny v GUI se OKAMŽITĚ automaticky ukládají do záložky Konfigurace v Excelu!\n"
             "   6) Klikněte na 'Spustit razítkování podle Excelu' -> Aplikace orazítkuje PDF v pravém\n"
             "      horním rohu a vytvoří Master PDF se strukturovanými záložkami (TOC).\n\n"
             "4. NAVIGACE A ZÁLOŽKY V MASTER PDF:\n"
@@ -251,7 +252,7 @@ class QualityDocApp(ctk.CTk):
         self.excel_path = os.path.join(self.app_dir, DEFAULT_EXCEL_NAME)
         self.wb = None
 
-        self.title(f"AUTEL - Utilita pro Dokumentaci Kvality {APP_VERSION} (Autor: {APP_AUTHOR})")
+        self.title(f"Utilita pro Tvorbu Dokumentace Kvality {APP_VERSION} (Autor: {APP_AUTHOR})")
         self.geometry("980x870")
 
         # Nastavení ikony okna
@@ -290,7 +291,7 @@ class QualityDocApp(ctk.CTk):
 
         self.sub_label = ctk.CTkLabel(
             titles_frame, 
-            text=f"Autor: {APP_AUTHOR} (AUTEL, a.s.)  |  Automatické razítkování, konverze a kompletace PDF podle Excelu", 
+            text=f"Autor: {APP_AUTHOR}  |  Automatické razítkování, konverze a kompletace PDF podle Excelu", 
             font=ctk.CTkFont(size=11, slant="italic"),
             text_color="#AAAAAA",
             anchor="w"
@@ -477,22 +478,22 @@ class QualityDocApp(ctk.CTk):
         return self.app_dir
 
     def on_setting_changed(self, *args):
-        """Automaticky a okamžitě uloží veškerá nastavení z GUI do záložky AUTEL v Excelu při jakékoliv změně."""
+        """Automaticky a okamžitě uloží veškerá nastavení z GUI do záložky Konfigurace v Excelu při jakékoliv změně."""
         self.update_excel_config_from_gui()
 
     def update_excel_config_from_gui(self):
-        """Uloží aktuální cesty a nastavení z GUI do záložky AUTEL v Excelu (přímo nebo přes COM)."""
+        """Uloží aktuální cesty a nastavení z GUI do záložky Konfigurace v Excelu (přímo nebo přes COM)."""
         if not os.path.exists(self.excel_path):
             return
         try:
             cfg_dict = self.get_gui_config_dict()
             if self.wb is None:
                 self.wb = safe_load_workbook(self.excel_path)
-            update_autel_config(self.wb, cfg_dict)
+            update_config_sheet(self.wb, cfg_dict)
             saved, save_msg = safe_save_workbook(self.wb, self.excel_path, config_dict=cfg_dict)
             if saved:
-                self.lbl_status.configure(text=f"Stav Excelu: Nastavení uloženo do záložky AUTEL ({DEFAULT_EXCEL_NAME}).")
-                self.log(f"Změna nastavení automaticky uložena do záložky AUTEL.")
+                self.lbl_status.configure(text=f"Stav Excelu: Nastavení uloženo do záložky Konfigurace ({DEFAULT_EXCEL_NAME}).")
+                self.log(f"Změna nastavení automaticky uložena do záložky Konfigurace.")
         except Exception as e:
             self.log(f"Varování při zápisu nastavení do Excelu: {e}")
 
@@ -630,7 +631,7 @@ class QualityDocApp(ctk.CTk):
             self.wb = wb
             
             cfg_dict = self.get_gui_config_dict()
-            update_autel_config(self.wb, cfg_dict)
+            update_config_sheet(self.wb, cfg_dict)
 
             # Načíst stávající Označení z Excelu, aby se při obnovení neztratily ručně zadané hodnoty!
             existing_map = {}

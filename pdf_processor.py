@@ -2,22 +2,25 @@ import os
 import shutil
 import fitz
 from converter import ensure_pdf, handle_protected_pdf
-from excel_manager import safe_save_workbook, read_open_excel_via_com, write_to_open_excel_via_com
+from excel_manager import safe_save_workbook, read_open_excel_via_com, write_to_open_excel_via_com, get_config_sheet
 
-def parse_hex_color(hex_str, default=(0, 0, 0)):
-    """Převede HEX řetězec (#RRGGBB) na n-tici (r, g, b) v rozmezí 0.0 až 1.0 pro fitz."""
-    try:
-        hex_str = str(hex_str).strip().lstrip('#')
-        if len(hex_str) == 6:
+def parse_hex_color(hex_str, default_rgb=(0, 0, 0)):
+    if not hex_str:
+        return default_rgb
+    hex_str = str(hex_str).strip().lstrip('#')
+    if hex_str.upper() in ["TRANSPARENT", "NONE", "0", "FFFFFF00"]:
+        return None
+    if len(hex_str) == 6:
+        try:
             r = int(hex_str[0:2], 16) / 255.0
             g = int(hex_str[2:4], 16) / 255.0
             b = int(hex_str[4:6], 16) / 255.0
             return (r, g, b)
-    except Exception:
-        pass
-    return default
+        except ValueError:
+            pass
+    return default_rgb
 
-def process_pdfs_from_excel(wb=None, excel_path=None, log_callback=None):
+def process_pdfs_from_excel(wb, excel_path=None, log_callback=None):
     """
     Provede kompletaci a razítkování podle nastavení v Excelu.
     Pokud je MS Excel otevřen, vyčte i zapíše data přímo přes COM API bez dočasných souborů!
@@ -25,23 +28,24 @@ def process_pdfs_from_excel(wb=None, excel_path=None, log_callback=None):
     def log(msg):
         if log_callback:
             log_callback(msg)
-        print(msg)
+        else:
+            print(msg)
 
-    com_config, com_entries = None, None
-    if excel_path:
+    com_config, com_entries = (None, None)
+    if excel_path and os.path.exists(excel_path):
         com_config, com_entries = read_open_excel_via_com(excel_path)
 
-    if com_config is not None and com_entries is not None and len(com_entries) > 0:
+    if com_config and com_entries:
         log("Čtu konfiguraci i seznam souborů ŽIVĚ přímo z otevřeného MS Excelu přes COM API...")
         config = com_config
         raw_file_list = com_entries
         using_com_live = True
     else:
-        ws_autel = wb["AUTEL"]
+        ws_config = get_config_sheet(wb)
         config = {}
-        for r in range(2, ws_autel.max_row + 1):
-            k = ws_autel.cell(r, 1).value
-            v = ws_autel.cell(r, 2).value
+        for r in range(2, ws_config.max_row + 1):
+            k = ws_config.cell(r, 1).value
+            v = ws_config.cell(r, 2).value
             if k:
                 config[str(k).strip()] = str(v).strip() if v is not None else ""
         
@@ -95,7 +99,7 @@ def process_pdfs_from_excel(wb=None, excel_path=None, log_callback=None):
     fill_opacity = opacity_pct / 100.0
 
     if not dst_dir:
-        raise ValueError("Cílový adresář není zadán na záložce AUTEL.")
+        raise ValueError("Cílový adresář není zadán v Konfiguraci.")
 
     os.makedirs(dst_dir, exist_ok=True)
     if err_dir:

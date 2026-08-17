@@ -68,18 +68,25 @@ def read_open_excel_via_com(excel_path):
             
         print(f"Čtu konfiguraci i seznam ŽIVĚ z MS Excel přes COM API: {target_wb.Name}")
         
-        # 1. Čtení AUTEL
+        # 1. Čtení Konfigurace
         config = {}
         try:
-            ws_autel = target_wb.Worksheets("AUTEL")
-            used_rows = ws_autel.UsedRange.Rows.Count
-            for r in range(2, used_rows + 1):
-                k = ws_autel.Cells(r, 1).Value
-                v = ws_autel.Cells(r, 2).Value
-                if k:
-                    config[str(k).strip()] = str(v).strip() if v is not None else ""
+            ws_config = None
+            for sheet_name in ["Konfigurace", "AUTEL", "Nastavení"]:
+                try:
+                    ws_config = target_wb.Worksheets(sheet_name)
+                    break
+                except Exception:
+                    pass
+            if ws_config:
+                used_rows = ws_config.UsedRange.Rows.Count
+                for r in range(2, used_rows + 1):
+                    k = ws_config.Cells(r, 1).Value
+                    v = ws_config.Cells(r, 2).Value
+                    if k:
+                        config[str(k).strip()] = str(v).strip() if v is not None else ""
         except Exception as e:
-            print(f"Varování při COM čtení AUTEL: {e}")
+            print(f"Varování při COM čtení konfigurace: {e}")
 
         # 2. Čtení Seznam
         file_entries = []
@@ -159,24 +166,31 @@ def write_to_open_excel_via_com(excel_path, file_entries=None, config_dict=None,
         try:
             print(f"Připojuji se přímo k otevřenému sešitu v MS Excel: {target_wb.Name}")
             
-            # 1. Aktualizovat konfiguraci na záložce AUTEL
+            # 1. Aktualizovat konfiguraci na záložce Konfigurace
             if config_dict:
                 try:
-                    ws_autel = target_wb.Worksheets("AUTEL")
-                    used_rows = ws_autel.UsedRange.Rows.Count
-                    key_to_row = {}
-                    for r in range(2, used_rows + 1):
-                        k = ws_autel.Cells(r, 1).Value
-                        if k:
-                            key_to_row[str(k).strip()] = r
-                            
-                    for k, v in config_dict.items():
-                        if k in key_to_row:
-                            ws_autel.Cells(key_to_row[k], 2).Value = str(v)
-                        else:
-                            new_r = ws_autel.UsedRange.Rows.Count + 1
-                            ws_autel.Cells(new_r, 1).Value = str(k)
-                            ws_autel.Cells(new_r, 2).Value = str(v)
+                    ws_config = None
+                    for sheet_name in ["Konfigurace", "AUTEL", "Nastavení"]:
+                        try:
+                            ws_config = target_wb.Worksheets(sheet_name)
+                            break
+                        except Exception:
+                            pass
+                    if ws_config:
+                        used_rows = ws_config.UsedRange.Rows.Count
+                        key_to_row = {}
+                        for r in range(2, used_rows + 1):
+                            k = ws_config.Cells(r, 1).Value
+                            if k:
+                                key_to_row[str(k).strip()] = r
+                                
+                        for k, v in config_dict.items():
+                            if k in key_to_row:
+                                ws_config.Cells(key_to_row[k], 2).Value = str(v)
+                            else:
+                                new_r = ws_config.UsedRange.Rows.Count + 1
+                                ws_config.Cells(new_r, 1).Value = str(k)
+                                ws_config.Cells(new_r, 2).Value = str(v)
                 except Exception as e:
                     print(f"Varování při zápisu konfigurace přes COM: {e}")
 
@@ -264,6 +278,13 @@ def safe_save_workbook(wb, excel_path, file_entries=None, config_dict=None, only
     except Exception as e:
         return False, f"Nepodařilo se uložit Excel: {e}"
 
+def get_config_sheet(wb):
+    """Vrátí list s konfigurací (Konfigurace, AUTEL nebo Nastavení)."""
+    for name in ["Konfigurace", "AUTEL", "Nastavení"]:
+        if name in wb.sheetnames:
+            return wb[name]
+    return wb.active
+
 def get_or_create_excel(excel_path=None, source_dir=None):
     if excel_path is None:
         excel_path = DEFAULT_EXCEL_NAME
@@ -277,11 +298,11 @@ def get_or_create_excel(excel_path=None, source_dir=None):
     
     wb = openpyxl.Workbook()
     
-    ws_autel = wb.active
-    ws_autel.title = "AUTEL"
-    ws_autel.sheet_properties.tabColor = BLUE_TAB_COLOR
+    ws_config = wb.active
+    ws_config.title = "Konfigurace"
+    ws_config.sheet_properties.tabColor = BLUE_TAB_COLOR
     
-    setup_autel_sheet(ws_autel, source_dir)
+    setup_config_sheet(ws_config, source_dir)
     
     ws_seznam = wb.create_sheet(title="Seznam")
     setup_seznam_sheet(ws_seznam)
@@ -289,7 +310,7 @@ def get_or_create_excel(excel_path=None, source_dir=None):
     safe_save_workbook(wb, excel_path)
     return wb, excel_path, True
 
-def setup_autel_sheet(ws, source_dir=None, config_dict=None):
+def setup_config_sheet(ws, source_dir=None, config_dict=None):
     cfg = config_dict or {}
     
     headers = [
@@ -340,8 +361,8 @@ def setup_autel_sheet(ws, source_dir=None, config_dict=None):
     ws.column_dimensions['B'].width = 50
     ws.column_dimensions['C'].width = 50
 
-def update_autel_config(wb, config_dict):
-    ws = wb["AUTEL"]
+def update_config_sheet(wb, config_dict):
+    ws = get_config_sheet(wb)
     key_to_row = {}
     for r in range(2, ws.max_row + 1):
         k = ws.cell(r, 1).value
@@ -356,27 +377,11 @@ def update_autel_config(wb, config_dict):
             ws.cell(row=new_r, column=1, value=k)
             ws.cell(row=new_r, column=2, value=str(v))
 
-def setup_seznam_sheet(ws):
-    headers = [
-        "Označení", "Úplná cesta", "Název souboru", "Počet stran", "Zápis", "Nový název souboru"
-    ]
-    
-    header_font = Font(name="Calibri", size=11, bold=True, color=HEADER_FONT_COLOR)
-    header_fill = PatternFill(start_color=HEADER_FILL_COLOR, end_color=HEADER_FILL_COLOR, fill_type="solid")
-    
-    for col_idx, text in enumerate(headers, start=1):
-        cell = ws.cell(row=1, column=col_idx, value=text)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        
-    widths = [15, 60, 35, 12, 15, 45]
-    cols = ['A', 'B', 'C', 'D', 'E', 'F']
-    for c, w in zip(cols, widths):
-        ws.column_dimensions[c].width = w
+def update_autel_config(wb, config_dict):
+    return update_config_sheet(wb, config_dict)
 
 def read_config_from_excel(wb):
-    ws = wb["AUTEL"]
+    ws = get_config_sheet(wb)
     config = {}
     for row in range(2, ws.max_row + 1):
         key = ws.cell(row, column=1).value
