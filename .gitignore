@@ -1,0 +1,20 @@
+# PyInstaller build artifacts
+build/
+dist/
+scratch/
+
+# Antigravity temporary media
+.tempmediaStorage/
+.user_uploaded/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Temporary MS Office lock files
+~$*
+
+# Generated output & error directories in samples
+**/Cíl*/
+**/Chyby*/
