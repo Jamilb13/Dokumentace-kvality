@@ -454,10 +454,16 @@ Identifikována příčina / Požadavek:
 2. Všechny záložky složek i dokumentů v Master PDF nyní odkazují přímo na tento cílový bod razítka (`to: stamp_target_pt`).
 3. Aplikace byla znovu zkompilována do `.exe`.
 
+---
 
+### Požadavek:
+- Oprava české diakritiky v PDF uživatelské příručce (`Uzivatelska_Prirucka_Utilita_Dokumentace_Kvality.pdf`). Standardní zabudované PDF fonty nepodporovaly české znaky s háčky a čárkami.
 
-
-
+### Řešení:
+1. Přebudován generátor PDF příručky ([`generate_pdf_manual.py`](file:///C:/Users/behalek/.gemini/antigravity-ide/brain/c8ad99c2-492d-4305-a7a8-335e2bffbca1/scratch/generate_pdf_manual.py)) pomocí knihovny ReportLab a zaregistrován systémový TrueType font Arial (`arial.ttf`, `arialbd.ttf`, `ariali.ttf`).
+2. Vygenerována zcela nová 2-stránková PDF příručka s 100% perfektní českou diakritikou, profesionální typografií, tabulkami a strukturou.
+3. Vizuálně ověřeno přes vyrenderované PNG snímky stránek.
+4. Aplikace byla znovu zkompilována do spouštěcího souboru [`dist/Utilita_Dokumentace_Kvality.exe`](file:///c:/Users/behalek/OneDrive%20-%20AUTEL,%20a.s/Antigravity/DK/dist/Utilita_Dokumentace_Kvality.exe).
 
 
 
