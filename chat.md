@@ -465,4 +465,17 @@ Identifikována příčina / Požadavek:
 3. Vizuálně ověřeno přes vyrenderované PNG snímky stránek.
 4. Aplikace byla znovu zkompilována do spouštěcího souboru [`dist/Utilita_Dokumentace_Kvality.exe`](file:///c:/Users/behalek/OneDrive%20-%20AUTEL,%20a.s/Antigravity/DK/dist/Utilita_Dokumentace_Kvality.exe).
 
+---
 
+## 2026-08-18 08:15
+
+### Uživatel:
+> Snímek chybového okna od kolegy: `Failed to execute script 'main' due to unhandled exception: No module named 'gui'`
+
+### Antigravity:
+Identifikována příčina:
+Při kompilaci přes PyInstaller chybělo v `.spec` souboru přímé nastavení vyhledávací cesty (`pathex=['.']`) a výslovný seznam vnitřních modulů (`hiddenimports`). Pokud kolega spouštěl kompilaci sám příkazem `pyinstaller main.py`, PyInstaller nepřibalil soubor `gui.py` do balíčku spouštěcího souboru.
+
+Řešení:
+1. V [`Utilita_Dokumentace_Kvality.spec`](file:///c:/Users/behalek/OneDrive%20-%20AUTEL,%20a.s/Antigravity/DK/Utilita_Dokumentace_Kvality.spec) doplněna cesta `pathex=['.']` a explicitní registrace modulů (`gui`, `excel_manager`, `pdf_processor`, `scanner`, `converter`) v `hiddenimports`.
+2. Provedena nová čistá re-kompilace aplikace do spouštěcího souboru [`dist/Utilita_Dokumentace_Kvality.exe`](file:///c:/Users/behalek/OneDrive%20-%20AUTEL,%20a.s/Antigravity/DK/dist/Utilita_Dokumentace_Kvality.exe). Nový `.exe` soubor již obsahuje všechny moduly 100% v sobě.
