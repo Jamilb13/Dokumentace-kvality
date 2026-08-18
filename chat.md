@@ -466,8 +466,3 @@ Identifikována příčina / Požadavek:
 4. Aplikace byla znovu zkompilována do spouštěcího souboru [`dist/Utilita_Dokumentace_Kvality.exe`](file:///c:/Users/behalek/OneDrive%20-%20AUTEL,%20a.s/Antigravity/DK/dist/Utilita_Dokumentace_Kvality.exe).
 
 
-
-
-
-
-
